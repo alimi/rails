@@ -177,7 +177,9 @@ module Rails
       def load_database_yaml # :nodoc:
         path = paths["config/database"].existent.first
         return {} unless path
-        YAML.load_file(path.to_s)
+        unparsed_file = File.read(path)
+        evaluated_file = ERB.new(unparsed_file).result(binding)
+        YAML.load(evaluated_file)
       end
 
       # Loads and returns the entire raw configuration of database from
@@ -285,6 +287,21 @@ module Rails
           true
         end
       end
+
+      class EnvDelegate < SimpleDelegator
+        class InvalidRailsEnvAccess < StandardError
+          def initialize(msg='Accessing ENV["RAILS_ENV"] in config/database.yml is not allowed')
+            super(msg)
+          end
+        end
+
+        def [](key)
+          raise InvalidRailsEnvAccess if key == "RAILS_ENV"
+          super
+        end
+      end
+
+      ENV = EnvDelegate.new(::ENV)
     end
   end
 end

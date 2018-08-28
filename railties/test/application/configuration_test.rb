@@ -1646,6 +1646,34 @@ module ApplicationTests
       assert_equal "dev_db",  ar_config["development"]["database"]
     end
 
+    test "evaluates ERB in database.yml" do
+      app_file "config/database.yml", <<-YAML
+        development:
+          username: bobby
+          adapter: <%= "sqlite#{2+1}" %>
+      YAML
+
+      app "development"
+
+      ar_config = Rails.application.config.load_database_yaml
+      assert_equal "sqlite3", ar_config["development"]["adapter"]
+      assert_equal "bobby",   ar_config["development"]["username"]
+    end
+
+    test "raises an error when evaluating ERB in database.yml that access RAILS_ENV" do
+      app_file "config/database.yml", <<-YAML
+        development:
+          username: bobby
+          adapter: <%= ENV["RAILS_ENV"] %>
+      YAML
+
+      app "development"
+
+      assert_raises do
+        Rails.application.config.load_database_yaml
+      end
+    end
+
     test "config.action_mailer.show_previews defaults to true in development" do
       app "development"
 
