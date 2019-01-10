@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "active_record/connection_adapters/determine_if_preparable_visitor"
+require "active_record/connection_adapters/notifier"
 require "active_record/connection_adapters/schema_cache"
 require "active_record/connection_adapters/sql_type_metadata"
 require "active_record/connection_adapters/abstract/schema_dumper"
@@ -110,7 +111,7 @@ module ActiveRecord
 
         @connection          = connection
         @owner               = nil
-        @instrumenter        = ActiveSupport::Notifications.instrumenter
+        @notifier            = ActiveRecord::ConnectionAdapters::Notifier.new
         @logger              = logger
         @config              = config
         @pool                = nil
@@ -622,7 +623,7 @@ module ActiveRecord
         end
 
         def log(sql, name = "SQL", binds = [], type_casted_binds = [], statement_name = nil) # :doc:
-          @instrumenter.instrument(
+          @notifier.emit(
             "sql.active_record",
             sql:               sql,
             name:              name,
